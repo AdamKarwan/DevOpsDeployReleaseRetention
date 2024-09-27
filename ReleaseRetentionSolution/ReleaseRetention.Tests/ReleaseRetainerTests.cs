@@ -6,33 +6,31 @@ using Xunit;
 
 namespace ReleaseRetention.Tests
 {
-    public class ReleaseRetentionTests
+    public class ReleaseRetainerTests
     {
-        [Fact]
-        public void RetainReleases_ShouldRetainSpecifiedNumberOfReleases()
+        private ReleaseRetainer CreateReleaseRetainer()
         {
-            // Arrange
-            var releaseRetention = new ReleaseRetainer
+            return new ReleaseRetainer
             {
-                Projects = [new() { Id = "1", Name = "Project1" }],
-                Environments = [new() { Id = "1", Name = "Environment1" }],
+                Projects = [new Project { Id = "1", Name = "Project1" }],
+                Environments = [new ReleaseEnvironment { Id = "1", Name = "Environment1" }],
                 Releases =
                 [
-                    new()
+                    new Release
                     {
                         Id = "1",
                         ProjectId = "1",
                         Version = "1.0",
                         Created = DateTime.Now.AddDays(-10),
                     },
-                    new()
+                    new Release
                     {
                         Id = "2",
                         ProjectId = "1",
                         Version = "1.1",
                         Created = DateTime.Now.AddDays(-5),
                     },
-                    new()
+                    new Release
                     {
                         Id = "3",
                         ProjectId = "1",
@@ -42,89 +40,64 @@ namespace ReleaseRetention.Tests
                 ],
                 Deployments =
                 [
-                    new()
+                    new Deployment
                     {
                         Id = "1",
                         ReleaseId = "1",
                         EnvironmentId = "1",
                         DeployedAt = DateTime.Now.AddDays(-9),
                     },
-                    new()
+                    new Deployment
                     {
                         Id = "2",
                         ReleaseId = "2",
                         EnvironmentId = "1",
                         DeployedAt = DateTime.Now.AddDays(-4),
                     },
-                    new()
-                    {
-                        Id = "3",
-                        ReleaseId = "3",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-2),
-                    },
                 ],
             };
+        }
+
+        [Fact]
+        public void RetainReleases_ShouldRetainSpecifiedNumberOfReleases()
+        {
+            // Arrange
+            var releaseRetainer = CreateReleaseRetainer();
 
             // Act
-            var retainedReleases = releaseRetention.RetainReleases(2);
+            var retainedReleases = releaseRetainer.RetainReleases(2);
 
             // Assert
             Assert.Equal(2, retainedReleases.Count);
+        }
+
+        [Fact]
+        public void RetainReleases_ShouldKeepMostRecentDeployments()
+        {
+            // Arrange
+            var releaseRetainer = CreateReleaseRetainer();
+
+            // Act
+            var retainedReleases = releaseRetainer.RetainReleases(2);
+
+            // Assert
+            Assert.Contains(retainedReleases, r => r.Id == "1");
             Assert.Contains(retainedReleases, r => r.Id == "2");
-            Assert.Contains(retainedReleases, r => r.Id == "3");
         }
 
         [Fact]
         public void RetainReleases_ShouldIncludeUndeployedReleasesIfNeeded()
         {
             // Arrange
-            var releaseRetention = new ReleaseRetainer
-            {
-                Projects = [new() { Id = "1", Name = "Project1" }],
-                Environments = [new() { Id = "1", Name = "Environment1" }],
-                Releases =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ProjectId = "1",
-                        Version = "1.0",
-                        Created = DateTime.Now.AddDays(-10),
-                    },
-                    new()
-                    {
-                        Id = "2",
-                        ProjectId = "1",
-                        Version = "1.1",
-                        Created = DateTime.Now.AddDays(-5),
-                    },
-                    new()
-                    {
-                        Id = "3",
-                        ProjectId = "1",
-                        Version = "1.2",
-                        Created = DateTime.Now.AddDays(-1),
-                    },
-                ],
-                Deployments =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ReleaseId = "1",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-9),
-                    },
-                ],
-            };
+            var releaseRetainer = CreateReleaseRetainer();
 
             // Act
-            var retainedReleases = releaseRetention.RetainReleases(2);
+            var retainedReleases = releaseRetainer.RetainReleases(3);
 
             // Assert
-            Assert.Equal(2, retainedReleases.Count);
+            Assert.Equal(3, retainedReleases.Count);
             Assert.Contains(retainedReleases, r => r.Id == "1");
+            Assert.Contains(retainedReleases, r => r.Id == "2");
             Assert.Contains(retainedReleases, r => r.Id == "3");
         }
 
@@ -132,62 +105,10 @@ namespace ReleaseRetention.Tests
         public void RetainReleases_ShouldNotRetainMoreThanSpecifiedNumber()
         {
             // Arrange
-            var releaseRetention = new ReleaseRetainer
-            {
-                Projects = [new() { Id = "1", Name = "Project1" }],
-                Environments = [new() { Id = "1", Name = "Environment1" }],
-                Releases =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ProjectId = "1",
-                        Version = "1.0",
-                        Created = DateTime.Now.AddDays(-10),
-                    },
-                    new()
-                    {
-                        Id = "2",
-                        ProjectId = "1",
-                        Version = "1.1",
-                        Created = DateTime.Now.AddDays(-5),
-                    },
-                    new()
-                    {
-                        Id = "3",
-                        ProjectId = "1",
-                        Version = "1.2",
-                        Created = DateTime.Now.AddDays(-1),
-                    },
-                ],
-                Deployments =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ReleaseId = "1",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-9),
-                    },
-                    new()
-                    {
-                        Id = "2",
-                        ReleaseId = "2",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-4),
-                    },
-                    new()
-                    {
-                        Id = "3",
-                        ReleaseId = "3",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-2),
-                    },
-                ],
-            };
+            var releaseRetainer = CreateReleaseRetainer();
 
             // Act
-            var retainedReleases = releaseRetention.RetainReleases(2);
+            var retainedReleases = releaseRetainer.RetainReleases(2);
 
             // Assert
             Assert.Equal(2, retainedReleases.Count);
@@ -197,7 +118,7 @@ namespace ReleaseRetention.Tests
         public void RetainReleases_ShouldKeepReleasesPerEnvironmentAndProject()
         {
             // Arrange
-            var releaseRetention = new ReleaseRetainer
+            var releaseRetainer = new ReleaseRetainer
             {
                 Projects =
                 [
@@ -301,7 +222,7 @@ namespace ReleaseRetention.Tests
                 ],
             };
             var numberOfReleases = 2;
-            var retainedReleases = releaseRetention.RetainReleases(numberOfReleases);
+            var retainedReleases = releaseRetainer.RetainReleases(numberOfReleases);
             Assert.Equal(4, retainedReleases.Count);
             Assert.Contains(retainedReleases, r => r.Id == "2");
             Assert.Contains(retainedReleases, r => r.Id == "3");
@@ -314,7 +235,7 @@ namespace ReleaseRetention.Tests
         {
             // 1 release, deployed to 2 environments
             // Arrange
-            var releaseRetention = new ReleaseRetainer
+            var releaseRetainer = new ReleaseRetainer
             {
                 Projects = [new() { Id = "1", Name = "Project1" }],
                 Environments =
@@ -351,7 +272,7 @@ namespace ReleaseRetention.Tests
                 ],
             };
             var numberOfReleases = 1;
-            var retainedReleases = releaseRetention.RetainReleases(numberOfReleases);
+            var retainedReleases = releaseRetainer.RetainReleases(numberOfReleases);
             Assert.Single(retainedReleases);
         }
 
@@ -359,13 +280,13 @@ namespace ReleaseRetention.Tests
         public void RetainReleases_ShouldReturnEmptyListIfNoReleases()
         {
             // Arrange
-            var releaseRetention = new ReleaseRetainer
+            var releaseRetainer = new ReleaseRetainer
             {
                 Projects = [new() { Id = "1", Name = "Project1" }],
                 Environments = [new() { Id = "1", Name = "Environment1" }],
             };
             var numberOfReleases = 1;
-            var retainedReleases = releaseRetention.RetainReleases(numberOfReleases);
+            var retainedReleases = releaseRetainer.RetainReleases(numberOfReleases);
             Assert.Empty(retainedReleases);
         }
 
@@ -373,66 +294,14 @@ namespace ReleaseRetention.Tests
         public void RetainReleases_ShouldLogReasonsForRetaining()
         {
             // Arrange
-            var releaseRetention = new ReleaseRetainer
-            {
-                Projects = [new() { Id = "1", Name = "Project1" }],
-                Environments = [new() { Id = "1", Name = "Environment1" }],
-                Releases =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ProjectId = "1",
-                        Version = "1.0",
-                        Created = DateTime.Now.AddDays(-10),
-                    },
-                    new()
-                    {
-                        Id = "2",
-                        ProjectId = "1",
-                        Version = "1.1",
-                        Created = DateTime.Now.AddDays(-5),
-                    },
-                    new()
-                    {
-                        Id = "3",
-                        ProjectId = "1",
-                        Version = "1.2",
-                        Created = DateTime.Now.AddDays(-1),
-                    },
-                ],
-                Deployments =
-                [
-                    new()
-                    {
-                        Id = "1",
-                        ReleaseId = "1",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-9),
-                    },
-                    new()
-                    {
-                        Id = "2",
-                        ReleaseId = "2",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-4),
-                    },
-                    new()
-                    {
-                        Id = "3",
-                        ReleaseId = "3",
-                        EnvironmentId = "1",
-                        DeployedAt = DateTime.Now.AddDays(-2),
-                    },
-                ],
-            };
+            var releaseRetainer = CreateReleaseRetainer();
 
             // Capture the console output
             var stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
 
             // Act
-            var retainedReleases = releaseRetention.RetainReleases(2);
+            var retainedReleases = releaseRetainer.RetainReleases(2);
 
             // make sure the console output is not empty
             Assert.NotEmpty(stringWriter.ToString());
