@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ReleaseRetention.Models;
+using ReleaseRetention.Services;
 using Xunit;
 
 namespace ReleaseRetention.Tests

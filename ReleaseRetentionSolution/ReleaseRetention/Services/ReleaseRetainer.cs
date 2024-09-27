@@ -1,4 +1,6 @@
-namespace ReleaseRetention.Models
+using ReleaseRetention.Models;
+
+namespace ReleaseRetention.Services
 {
     /// <summary>
     /// The main class for managing release retention.
