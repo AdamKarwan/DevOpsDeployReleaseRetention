@@ -8,18 +8,7 @@ namespace ReleaseRetention.Models
         public required DateTime DeployedAt { get; set; }
 
         // Navigation properties
-        internal Release? Release { get; private set; }
-        internal Environment? Environment { get; private set; }
-
-        // Setters for navigation properties
-        internal void SetRelease(Release release)
-        {
-            Release = release;
-        }
-
-        internal void SetEnvironment(Environment environment)
-        {
-            Environment = environment;
-        }
+        internal Release? Release { get; set; }
+        internal Environment? Environment { get; set; }
     }
 }

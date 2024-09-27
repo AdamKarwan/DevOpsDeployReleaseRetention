@@ -36,10 +36,24 @@ namespace ReleaseRetention.Models
         /// <summary>
         /// Sets the navigation properties between the entities where necessary.
         /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
         private void InitializeRelationships()
         {
-            throw new NotImplementedException();
+            // set up dictionaries for quick lookup of environments, projects and releases by id
+            var environmentsById = Environments.ToDictionary(e => e.Id);
+            var projectsById = Projects.ToDictionary(p => p.Id);
+            var releasesById = Releases.ToDictionary(r => r.Id);
+
+            // set up the relationships between the entities
+            // we only need to loop through the deployments to set up most relationships. releases with no deployments will be handled separately
+            foreach (var deployment in Deployments)
+            {
+                deployment.Environment = environmentsById[deployment.EnvironmentId];
+                deployment.Environment.Deployments.Add(deployment);
+                deployment.Release = releasesById[deployment.ReleaseId];
+                deployment.Release.Deployments.Add(deployment);
+                deployment.Release.Project = projectsById[deployment.Release.ProjectId];
+                deployment.Release.Project.Releases.Add(deployment.Release);
+            }
         }
     }
 }
