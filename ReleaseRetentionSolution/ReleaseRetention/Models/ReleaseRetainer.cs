@@ -31,24 +31,19 @@ namespace ReleaseRetention.Models
             // keep track of releases with the reason for keeping them. we only need to keep one reason per release and dont want the same release in there multiple times
             var releasesToKeep = new Dictionary<Release, string>();
             // we need to know which releases have not been deployed at all for filling in the gaps if there are fewer deployments than the specified number of releases
-            var undeployedReleases = Releases.Where(r => r.Deployments.Count == 0);
+            var undeployedReleases = Releases.Where(r => r.Deployments.Count == 0).ToList();
 
             // Loop through each environment and project to find the most recent deployments
             foreach (var environment in Environments)
             {
                 foreach (var project in Projects)
                 {
-                    // sort the deployments by most recent
-                    var deployments = Deployments
-                        .Where(d =>
-                            d.EnvironmentId == environment.Id && d?.Release?.ProjectId == project.Id
-                        )
-                        .OrderByDescending(d => d.DeployedAt);
-                    var releases = deployments.Select(d => d.Release).Distinct();
-                    // take the most recent releases up to the number specified
-                    var releasesToKeepForEnvironmentProject = releases
-                        .Take(numberOfReleases)
-                        .ToList();
+                    var releasesToKeepForEnvironmentProject =
+                        GetReleasesToKeepForEnvironmentProject(
+                            environment,
+                            project,
+                            numberOfReleases
+                        );
 
                     foreach (var release in releasesToKeepForEnvironmentProject)
                     {
@@ -61,26 +56,14 @@ namespace ReleaseRetention.Models
                         }
                     }
                     // if there are extra spaces to fill for any environment/project, add the most recent releases that have not yet been deployed.
-                    var numRemainingReleases =
-                        numberOfReleases - releasesToKeepForEnvironmentProject.Count;
-
-                    if (numRemainingReleases > 0)
-                    {
-                        var remainingReleases = undeployedReleases
-                            .Where(r => r.ProjectId == project.Id && !releasesToKeep.ContainsKey(r))
-                            .OrderByDescending(r => r.Created)
-                            .Take(numRemainingReleases);
-                        foreach (var release in remainingReleases)
-                        {
-                            if (!releasesToKeep.ContainsKey(release))
-                            {
-                                releasesToKeep.Add(
-                                    release,
-                                    $"{release.Id} kept because less than {numberOfReleases} releases were deployed to {project.Name}/{environment.Name} and this is one of the {numRemainingReleases} most recent releases that have not been deployed"
-                                );
-                            }
-                        }
-                    }
+                    AddUndeployedReleases(
+                        releasesToKeep,
+                        undeployedReleases,
+                        project,
+                        environment,
+                        numberOfReleases,
+                        releasesToKeepForEnvironmentProject.Count
+                    );
                 }
             }
             // return the list of releases and log the reason for keeping them
@@ -89,6 +72,68 @@ namespace ReleaseRetention.Models
                 Console.WriteLine(releasesToKeep[release]);
             }
             return [.. releasesToKeep.Keys];
+        }
+
+        /// <summary>
+        /// Gets the releases that have been most recently deployed to the specified environment and project.
+        /// </summary>
+        /// <param name="environment"></param>
+        /// <param name="project"></param>
+        /// <param name="numberOfReleases"></param>
+        /// <returns></returns>
+        private List<Release?> GetReleasesToKeepForEnvironmentProject(
+            ReleaseEnvironment environment,
+            Project project,
+            int numberOfReleases
+        )
+        {
+            return Deployments
+                .Where(d => d.EnvironmentId == environment.Id && d.Release?.ProjectId == project.Id)
+                .OrderByDescending(d => d.DeployedAt)
+                .Select(d => d.Release)
+                .Distinct()
+                .Take(numberOfReleases)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Adds the most recent releases that have not been deployed to the list of releases to keep.
+        /// </summary>
+        /// <param name="releasesToKeep">The number of releases to keep</param>
+        /// <param name="undeployedReleases">List of releases that have not been deployed</param>
+        /// <param name="project">The project to check releases for</param>
+        /// <param name="environment">The environment to check</param>
+        /// <param name="numberOfReleases">The total number of releases to retain per environment/project</param>
+        /// <param name="currentCount">The number of releases that have already been retained</param>
+        private void AddUndeployedReleases(
+            Dictionary<Release, string> releasesToKeep,
+            List<Release> undeployedReleases,
+            Project project,
+            ReleaseEnvironment environment,
+            int numberOfReleases,
+            int currentCount
+        )
+        {
+            var numRemainingReleases = numberOfReleases - currentCount;
+
+            if (numRemainingReleases > 0)
+            {
+                var remainingReleases = undeployedReleases
+                    .Where(r => r.ProjectId == project.Id && !releasesToKeep.ContainsKey(r))
+                    .OrderByDescending(r => r.Created)
+                    .Take(numRemainingReleases);
+
+                foreach (var release in remainingReleases)
+                {
+                    if (!releasesToKeep.ContainsKey(release))
+                    {
+                        releasesToKeep.Add(
+                            release,
+                            $"{release.Id} kept because less than {numberOfReleases} releases were deployed to {project.Name}/{environment.Name} and this is one of the {numRemainingReleases} most recent releases that have not been deployed"
+                        );
+                    }
+                }
+            }
         }
 
         /// <summary>
