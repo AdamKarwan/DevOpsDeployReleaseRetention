@@ -9,6 +9,6 @@ namespace ReleaseRetention.Models
 
         // Navigation properties
         internal Release? Release { get; set; }
-        internal Environment? Environment { get; set; }
+        internal ReleaseEnvironment? Environment { get; set; }
     }
 }

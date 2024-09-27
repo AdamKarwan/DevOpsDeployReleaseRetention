@@ -3,17 +3,17 @@ namespace ReleaseRetention.Models
     /// <summary>
     /// The main class for managing release retention.
     /// </summary>
-    public class ReleaseRetention
+    public class ReleaseRetainer
     {
         public List<Project> Projects { get; set; }
-        public List<Environment> Environments { get; set; }
+        public List<ReleaseEnvironment> Environments { get; set; }
         public List<Deployment> Deployments { get; set; }
         public List<Release> Releases { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReleaseRetention"/> class.
+        /// Initializes a new instance of the <see cref="ReleaseRetainer"/> class.
         /// </summary>
-        public ReleaseRetention()
+        public ReleaseRetainer()
         {
             Projects = [];
             Environments = [];
@@ -56,7 +56,7 @@ namespace ReleaseRetention.Models
                         {
                             releasesToKeep.Add(
                                 release,
-                                $"{release.Id} kept because it was one of the most recent {numberOfReleases} deployments for {environment.Name} and {project.Name}"
+                                $"{release.Id} kept because it was one of the most recent {numberOfReleases} deployments for {project.Name}/{environment.Name}"
                             );
                         }
                     }

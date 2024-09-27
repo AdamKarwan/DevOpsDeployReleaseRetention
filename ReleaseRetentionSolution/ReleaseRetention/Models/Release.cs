@@ -4,7 +4,7 @@ namespace ReleaseRetention.Models
     {
         public required string Id { get; set; }
         public required string ProjectId { get; set; }
-        public required string Version { get; set; }
+        public string? Version { get; set; }
         public required DateTime Created { get; set; }
 
         // Navigation properties
